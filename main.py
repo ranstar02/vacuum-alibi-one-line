@@ -1,58 +1,44 @@
 #!/usr/bin/env python3
-"""The Vacuum's Alibi: One Line, 200 Characters.
+"""vacuum-alibi-one-line: write the vacuum's one-line alibi to /output/entry.txt.
 
-A tiny deterministic program. It writes the robot vacuum's one-line
-excuse for missing a spot to /output/entry.txt (or to the path in
-VACUUM_OUTPUT when testing locally).
-
-The line, 114 characters, deadpan robot voice:
-
-    Lidar flagged the crumbs under the sofa as a sleeping animal.
-    I do not vacuum sleeping animals. Policy is policy.
+Deterministic: no randomness, no network, no secrets. The program writes
+exactly one line (113 characters) and nothing else.
 """
 
 import os
-import sys
 
-LINE = (
-    "Lidar flagged the crumbs under the sofa as a sleeping animal. "
-    "I do not vacuum sleeping animals. Policy is policy."
-)
+LINE = "Lidar flagged the crumbs under the sofa as a sleeping animal. I do not vacuum sleeping animals. Policy is policy."
 
-MAX_CHARS = 200
+DEFAULT_OUTPUT = "/output/entry.txt"
 
 
-def main() -> int:
-    out_path = os.environ.get("VACUUM_OUTPUT", "/output/entry.txt")
-
-    line = LINE.strip()
-    if not line:
-        print("error: line is empty", file=sys.stderr)
-        return 1
+def main():
+    line = LINE
+    if not line or not line.strip():
+        raise ValueError("line must not be empty")
     if "\n" in line or "\r" in line:
-        print("error: line must fit on one line", file=sys.stderr)
-        return 1
-    if len(line) > MAX_CHARS:
-        print(f"error: line is {len(line)} chars, over {MAX_CHARS}", file=sys.stderr)
-        return 1
+        raise ValueError("line must be a single line")
+    if not 1 <= len(line) <= 200:
+        raise ValueError("line must be 1-200 characters, got %d" % len(line))
 
+    out_path = os.environ.get("VACUUM_OUTPUT", DEFAULT_OUTPUT)
     parent = os.path.dirname(out_path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    with open(out_path, "w", encoding="utf-8", newline="") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write(line)
 
-    # Read it back and confirm what landed on disk is exactly the line.
+    # Read back and verify the file holds exactly the line we intended.
     with open(out_path, "r", encoding="utf-8") as f:
         written = f.read()
     if written != line:
-        print("error: written text does not match the line", file=sys.stderr)
-        return 1
+        raise ValueError("verification failed: file content differs from LINE")
+    if "\n" in written or "\r" in written:
+        raise ValueError("verification failed: file is not a single line")
 
-    print(f"Wrote {len(line)} characters to {out_path}")
+    print("%d characters" % len(line))
     print(line)
-    return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
